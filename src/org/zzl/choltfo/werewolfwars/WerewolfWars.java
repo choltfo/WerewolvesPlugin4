@@ -13,7 +13,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -33,6 +35,7 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 	}
 	
 	public void onEnable() {
+		getServer().getPluginManager().registerEvents(this, this);
 		setupDisguiseCraft();
 		reloadConfig();
 		getConfig().options().header("Werewolf Wars Config and blacklist.\r\n" +
@@ -63,7 +66,16 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 					sender.sendMessage(ChatColor.RED + "Wrong number of arguments! Needs 3!");
 					return true;
 				}
-				if (getGameByName(args[2]) != null) {
+				if (getGameByName(args[2]) == null) {
+					sender.sendMessage(ChatColor.RED + "No game by that name!");
+					return true;
+				}
+				if (getServer().getPlayer(args[3]) == null) {
+					sender.sendMessage(ChatColor.RED + "No player by that name!");
+					return true;
+				}
+				if (getGameByName(args[2]).getPlayer(getServer().getPlayer(args[2])) == null) {
+					sender.sendMessage(ChatColor.RED + "No player by that name in that game!");
 					return true;
 				}
 				getGameByName(args[2]).changePlayer(getServer().getPlayer(args[2]), WWPlayerState.infected);
@@ -79,7 +91,16 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 					sender.sendMessage(ChatColor.RED + "Wrong number of arguments! Needs 3!");
 					return true;
 				}
-				if (getGameByName(args[2]) != null) {
+				if (getGameByName(args[2]) == null) {
+					sender.sendMessage(ChatColor.RED + "No game by that name!");
+					return true;
+				}
+				if (getServer().getPlayer(args[3]) == null) {
+					sender.sendMessage(ChatColor.RED + "No player by that name!");
+					return true;
+				}
+				if (getGameByName(args[2]).getPlayer(getServer().getPlayer(args[2])) == null) {
+					sender.sendMessage(ChatColor.RED + "No player by that name in that game!");
 					return true;
 				}
 				getGameByName(args[2]).changePlayer(getServer().getPlayer(args[2]), WWPlayerState.uninfected);
@@ -101,22 +122,39 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 				}
 				if (args[2].equalsIgnoreCase("spawn") || args[2].equalsIgnoreCase("s")) {
 					if (getGameByName(args[1]) == null) {
-						sender.sendMessage("World "+args[1]+" does not exist. Check your spelling.");
+						sender.sendMessage("WW game "+args[1]+" does not exist. Check your spelling.");
 						return true;
 					}
 					getGameByName(args[1]).Spawn = ((Player)sender).getLocation();
 					sender.sendMessage("Spawn point successfully set to " + ((Player)sender).getLocation().toString());
+					return true;
 				}
 				if (args[2].equalsIgnoreCase("spawn2") || args[2].equalsIgnoreCase("s2")) {
 					if (getGameByName(args[1]) == null) {
-						sender.sendMessage("World "+args[1]+" does not exist. Check your spelling.");
+						sender.sendMessage("WW game "+args[1]+" does not exist. Check your spelling.");
 						return true;
 					}
 					getGameByName(args[1]).wolfSpawn = ((Player)sender).getLocation();
 					sender.sendMessage("Wolf spawn point successfully set to " + ((Player)sender).getLocation().toString());
+					return true;
+				}
+				if (args[2].equalsIgnoreCase("delete") || args[2].equalsIgnoreCase("d")) {
+					if (getGameByName(args[1]) == null) {
+						sender.sendMessage(ChatColor.RED + "That game does not exist!");
+						return true;
+					} else {
+						sender.sendMessage(ChatColor.GREEN + "Deleted game "+args[1]+".");
+						return true;
+					}
+					
 				}
 				if (args[2].equalsIgnoreCase("create") || args[2].equalsIgnoreCase("c")) {
 					//Add support for multiple games, specified by args[1].
+					if (getGameByName(args[1]) != null) {
+						sender.sendMessage(ChatColor.RED + "A game already exists with that name!\n" +
+								"Delete it with /ww s "+args[1]+" d.");
+						return true;
+					}
 					String msg = giveSetupHelp();
 					if (args.length == 3) {
 						games.add(new WWGame(args[1], ((Player)sender).getWorld(), ((Player)sender).getLocation(), dcAPI,
@@ -149,6 +187,18 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 					return true;
 				}
 				
+			}
+			
+			if (args[0].equalsIgnoreCase("list")) {
+				String msg = "Joinable WW games:\n";
+				msg += ChatColor.GREEN + "GREEN denotes game has not started.\n";
+				msg += ChatColor.BLUE + "BLUE denotes game has started.\n";
+				for (WWGame game : games) {
+					msg += (game.started ? ChatColor.BLUE : ChatColor.GREEN) +  game.name + ChatColor.RESET +
+							" - " + game.playersInGame.size() + " players in game.\n";
+				}
+				sender.sendMessage(msg);
+				return true;
 			}
 			
 			if (args[0].equalsIgnoreCase("join")) {
@@ -237,7 +287,6 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 		return false;
 	}
 	
-	
 	public String giveSetupHelp() {
 		String msg = "";
 			msg += (ChatColor.GOLD + "Werewolf Wars setup help\n");
@@ -260,6 +309,20 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 	}
 	
 	@EventHandler
+	public void onPlayerLogout(PlayerQuitEvent event) {
+		Player p = event.getPlayer();
+		for (WWGame game : games) {
+			for (WWPlayer player : game.playersInGame) {
+				if (player.player == p) {
+					player.reConstitute(dcAPI);
+					game.playersInGame.remove(player);
+					return;
+				}
+			}
+		}
+	}
+	
+	@EventHandler
 	public void onUndisguise(DCCommandEvent event) {
 		System.out.println("COMMANDEERED!");
 		event.getPlayer().sendMessage("Sent DCCommand!");
@@ -272,19 +335,19 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 	}
 	
 	@EventHandler
-	public void onPlayerInjury(EntityDamageByEntityEvent event) {
+	public void onPlayerInjury(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) return;
 		for (WWGame game : games) {
 			if (event.getEntity().getWorld() == game.world) {
 				if (((Player)event.getEntity()).getHealth() - event.getDamage() < 1) {
 					event.setCancelled(true);
 					game.playerDied(game.getPlayer((Player)event.getEntity()));
+					((Player)event.getEntity()).sendMessage("You done died.");
 				}
 			}
 		}
 	}
 
-	
 	@EventHandler
 	public void onPlayerDeath(PlayerDeathEvent event) {
 		
@@ -296,6 +359,7 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 			if (event.getPlayer().getWorld() == game.world) {
 				if (game.getPlayer(event.getPlayer()) !=null) {
 					game.getPlayer(event.getPlayer()).score += 50;
+					return;
 				}
 			}
 		}
@@ -318,6 +382,7 @@ class WWGame {
 	public DisguiseCraftAPI dcAPI;
 	GenerationType generationType = GenerationType.circle;
 	public Location wolfSpawn;
+	public boolean started;
 	
 	WWGame (String lname, World lworld, Location lSpawn, DisguiseCraftAPI ldcAPI, int size, GenerationType gt) {
 		name = lname;
@@ -412,10 +477,11 @@ class WWGame {
 	public String listPlayers() {
 		String Return = "Players currently in this game:\n";
 		for (WWPlayer player : playersInGame) {
-			Return = Return + "-> " + player.player.getPlayerListName() + "\n";
+			Return = Return + "-> " + player.player.getPlayerListName() + "\n" + ChatColor.RESET;
 		}
 		return Return;
 	}
+
 	public String getDetails() {
 		return generationType.toString() + " shaped, " + ArenaSize + " radius, inside "
 	+ world.getName() + "";
@@ -459,6 +525,12 @@ class WWGame {
 
 	public void playerDied(WWPlayer player){
 		if (dcAPI.isDisguised(player.player)) dcAPI.undisguisePlayer(player.player);
+		changePlayer (player.player, WWPlayerState.infected);
+		respawnPlayer(player);
+	}
+	
+	public void respawnPlayer(WWPlayer player) {
+		player.player.teleport((player.state == WWPlayerState.infected ? wolfSpawn : Spawn));
 	}
 	
 	public void checkWinner() {
@@ -494,7 +566,7 @@ class WWPlayer {
 		originalInventory = player.getInventory().getContents();
 		if (dcAPI.isDisguised(player)) dcAPI.undisguisePlayer(player);
 	}
-	void reConstitute (DisguiseCraftAPI dcAPI) {
+	public void reConstitute (DisguiseCraftAPI dcAPI) {
 		player.getInventory().setContents(originalInventory);
 		player.setGameMode(originalGamemode);
 		player.teleport(originalPosition);
