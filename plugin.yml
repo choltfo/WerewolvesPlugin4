@@ -1,0 +1,54 @@
+name: Werewolf Wars
+author: choltfo
+main: org.zzl.choltfo.werewolfwars.WerewolfWars
+version: 4.0.1
+
+commands:
+   ww:
+      description: The command for all things in Werewolf Wars.
+      usage: /<command> [play|start|settings|kick|ban|pardon]
+      permission: ww.command
+      permission-message: You don't have <permission>
+
+permissions:
+    ww.*:
+        description: Gives access to all WerewolfWars commands
+        default: op
+        children:
+            ww.start: true
+            ww.settings: true
+            ww.kick: true
+    ww.start:
+        description: Allows you to start a game.
+        default: op
+    ww.ban:
+        description: Allows you to ban and pardon users from ww.
+        default: op
+    ww.kick:
+        description: Allows you to kick a user from ww.
+        default: op
+    ww.infect:
+        description: Allows you to infenct and uninfect users.
+        default: op
+    ww.play:
+        description: Allows you to enter the current game.
+        default: true
+    ww.settings:
+        description: Allows you edit settings for the current game.
+        default: op
+    ww.command:
+        description: Allows you to use any 'ww' commands.
+        default: true
+    ww.setup:
+        description: Allow you to create new WW games.
+        default: op
+    
+
+
+
+
+
+
+
+
+
