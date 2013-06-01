@@ -12,11 +12,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import pgDev.bukkit.DisguiseCraft.DisguiseCraft;
@@ -554,6 +554,13 @@ class WWGame {
 		broadcast(winner.player.getDisplayName() + " had the highest score at " + winner.score);
 		reset();
 	}
+
+	public ItemStack[] defaultInfecteeInv() {
+		ItemStack[] inv = new ItemStack[9];
+		inv[0] = new ItemStack(Material.IRON_SWORD);
+		
+		return null;
+	}
 }
 
 class WWPlayer {
@@ -564,6 +571,7 @@ class WWPlayer {
 		state = WWPlayerState.uninfected;
 		originalGamemode = lplayer.getGameMode();
 		originalInventory = player.getInventory().getContents();
+		player.getInventory().clear();
 		if (dcAPI.isDisguised(player)) dcAPI.undisguisePlayer(player);
 	}
 	public void reConstitute (DisguiseCraftAPI dcAPI) {
