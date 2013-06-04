@@ -16,7 +16,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import pgDev.bukkit.DisguiseCraft.DisguiseCraft;
@@ -202,6 +201,10 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 			}
 			
 			if (args[0].equalsIgnoreCase("join")) {
+				if (args.length < 2) {
+					sender.sendMessage("Specify game name! Use /ww list to list.");
+					return true;
+				}
 				if (sender instanceof Player) {
 					if (getConfig().getString(((Player)sender).getName()) != "BANNED") {
 						if (getGameByName(args[1]).equals(null)) {
@@ -324,12 +327,14 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 	
 	@EventHandler
 	public void onUndisguise(DCCommandEvent event) {
-		System.out.println("COMMANDEERED!");
-		event.getPlayer().sendMessage("Sent DCCommand!");
+		if (event.getSender().hasPermission("ww.infect")) {
+			return;
+		}
 		for (WWGame game : games) {
-			if (event.getPlayer().getWorld().equals(game.world)) {
+			if (game.getPlayer(event.getPlayer()) != null) {
 				event.setCancelled(true);
 				event.getPlayer().sendMessage(ChatColor.RED + "You cannot do that here!");
+				return;
 			}
 		}
 	}
@@ -338,11 +343,11 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 	public void onPlayerInjury(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) return;
 		for (WWGame game : games) {
-			if (event.getEntity().getWorld() == game.world) {
+			if (game.getPlayer((Player)event.getEntity()) != null) {
 				if (((Player)event.getEntity()).getHealth() - event.getDamage() < 1) {
 					event.setCancelled(true);
 					game.playerDied(game.getPlayer((Player)event.getEntity()));
-					((Player)event.getEntity()).sendMessage("You done died.");
+					game.checkWinner();
 				}
 			}
 		}
@@ -490,6 +495,7 @@ class WWGame {
 	public void kickPlayer(Player player) {
 		for (WWPlayer Gplayer : playersInGame) {
 			if (Gplayer.player.equals(player)) {
+				getPlayer(player).reConstitute(dcAPI);
 				player.teleport(Gplayer.originalPosition);
 				playersInGame.remove(Gplayer);
 				player.setPlayerListName(null);
@@ -531,6 +537,12 @@ class WWGame {
 	
 	public void respawnPlayer(WWPlayer player) {
 		player.player.teleport((player.state == WWPlayerState.infected ? wolfSpawn : Spawn));
+		player.player.setHealth(20);
+		player.player.setFoodLevel(20);
+		player.player.setSaturation(20);
+		player.player.setExhaustion(0);
+		player.player.getInventory().setContents(player.state == WWPlayerState.infected ?
+				defaultInfecteeInv() : defaultSurvivorInv());
 	}
 	
 	public void checkWinner() {
@@ -558,7 +570,28 @@ class WWGame {
 	public ItemStack[] defaultInfecteeInv() {
 		ItemStack[] inv = new ItemStack[9];
 		inv[0] = new ItemStack(Material.IRON_SWORD);
-		
+		inv[1] = new ItemStack(Material.IRON_SWORD);
+		inv[2] = new ItemStack(Material.IRON_SWORD);
+		inv[3] = new ItemStack(Material.IRON_SWORD);
+		inv[4] = new ItemStack(Material.IRON_SWORD);
+		inv[5] = new ItemStack(Material.IRON_SWORD);
+		inv[6] = new ItemStack(Material.IRON_SWORD);
+		inv[7] = new ItemStack(Material.IRON_SWORD);
+		inv[8] = new ItemStack(Material.IRON_SWORD);
+		return null;
+	}
+	
+	public ItemStack[] defaultSurvivorInv() {
+		ItemStack[] inv = new ItemStack[9];
+		inv[0] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[1] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[2] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[3] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[4] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[5] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[6] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[7] = new ItemStack(Material.DIAMOND_SWORD);
+		inv[8] = new ItemStack(Material.DIAMOND_SWORD);
 		return null;
 	}
 }
@@ -570,16 +603,19 @@ class WWPlayer {
 		score = 0;
 		state = WWPlayerState.uninfected;
 		originalGamemode = lplayer.getGameMode();
+		
 		originalInventory = player.getInventory().getContents();
 		player.getInventory().clear();
 		if (dcAPI.isDisguised(player)) dcAPI.undisguisePlayer(player);
 	}
+	
 	public void reConstitute (DisguiseCraftAPI dcAPI) {
 		player.getInventory().setContents(originalInventory);
 		player.setGameMode(originalGamemode);
 		player.teleport(originalPosition);
 		if (dcAPI.isDisguised(player)) dcAPI.undisguisePlayer(player);
 	}
+	
 	Player player;
 	WWPlayerState state = WWPlayerState.uninfected;
 	int score = 0;
