@@ -344,7 +344,7 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 		if (!(event.getEntity() instanceof Player)) return;
 		for (WWGame game : games) {
 			if (game.getPlayer((Player)event.getEntity()) != null) {
-				if (((Player)event.getEntity()).getHea - event.getDamage() < 1) {
+				if (((Player)event.getEntity()).getHealth() - event.getDamage() < 1) {
 					event.setCancelled(true);
 					game.playerDied(game.getPlayer((Player)event.getEntity()));
 					game.checkWinner();
@@ -537,7 +537,7 @@ class WWGame {
 	
 	public void respawnPlayer(WWPlayer player) {
 		player.player.teleport((player.state == WWPlayerState.infected ? wolfSpawn : Spawn));
-		player.player.setHealth(20);
+		player.player.setHealth(20.0);
 		player.player.setFoodLevel(20);
 		player.player.setSaturation(20);
 		player.player.setExhaustion(0);
