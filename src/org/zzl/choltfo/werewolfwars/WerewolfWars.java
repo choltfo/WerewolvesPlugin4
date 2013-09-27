@@ -13,7 +13,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -225,7 +224,7 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 			if (args[0].equalsIgnoreCase("start")) {
 				if (sender instanceof Player) {
 					if (sender.hasPermission("ww.start")) {
-						sender.sendMessage(ChatColor.GREEN + "Starting game.");
+						sender.sendMessage(ChatColor.GREEN + "Starting game. JUST KIDDING!");
 					} else {
 						sender.sendMessage(ChatColor.RED + "You do not have permission (ww.start) to do that.");
 					}
@@ -353,10 +352,10 @@ public class WerewolfWars extends JavaPlugin implements Listener {
 		}
 	}
 
-	@EventHandler
+	/*@EventHandler
 	public void onPlayerDeath(PlayerDeathEvent event) {
 		
-	}
+	}*/
 	
 	@EventHandler
 	public void onDisguiseAttack(PlayerInvalidInteractEvent event) {
